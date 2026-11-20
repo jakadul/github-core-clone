@@ -1098,6 +1098,7 @@ function isAncestor(owner: string, name: string, ancestor: string, descendant: s
 
 /** Parse a received packfile (with deltas) into resolved GitObjects. */
 function parseIncomingPack(pack: Buffer): GitObject[] {
+  if (process.env.GHC_DUMP_PACK) {
     fs.writeFileSync(process.env.GHC_DUMP_PACK, pack);
     console.error("dumped pack", pack.length, "bytes, count field:", pack.readUInt32BE(8));
   }
@@ -1385,6 +1386,15 @@ async function handleRest(req: http.IncomingMessage, res: http.ServerResponse, u
   if (seg.length === 1 && seg[0] === "user" && method === "GET") return json(userJson(AUTH_LOGIN));
   // GET /users/{login}
   if (seg.length === 2 && seg[0] === "users" && method === "GET") return json(userJson(seg[1]));
+  // GET /repos/{owner}/{repo}/branches  (new)
+  if (seg.length === 4 && seg[0] === "repos" && seg[3] === "branches" && method === "GET") {
+    const owner = seg[1], name = seg[2];
+    if (!fs.existsSync(store.repoDir(owner, name))) return json({ message: "Not Found" }, 404);
+    const branches = store.listRefs(owner, name)
+      .filter((r) => r.ref.startsWith("refs/heads/"))
+      .map((r) => ({ name: r.ref.slice("refs/heads/".length), commit: { sha: r.sha }, protected: false }));
+    return json(branches);
+  }
   // POST /user/repos  (GitHub's create-a-repository endpoint)
   if (seg.length === 2 && seg[0] === "user" && seg[1] === "repos" && method === "POST") {
     const input = body.length ? (JSON.parse(body.toString("utf8")) as Json) : {};
@@ -2044,7 +2054,7 @@ const MCP_TOOLS: McpTool[] = [
         owner: { type: "string", description: "Repository owner." },
         repo: { type: "string", description: "Repository name." },
         path: { type: "string", description: "File path inside the repository." },
-        ref: { type: "string", description: "Branch, tag, or commit sha (defaults to default branch)." },
+        ref: { type: "string", description: "Branch, tag, or commit sha (defaults to default branch).", required: false },
       },
       required: ["owner", "repo", "path"],
     },
