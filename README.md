@@ -21,7 +21,7 @@ Endpoints:
 
 - git smart HTTP: `/info/refs?service=git-upload-pack`, `/git-upload-pack`,
   `/git-receive-pack` (clone, fetch, push work out of the box)
-- REST v3: `/api/v3/repos/{owner}/{repo}`, contents, issues, pulls, commits,
+- REST v3: `/api/v3/repos/jakadul/{repo}`, contents, issues, pulls, commits,
   `/users/{login}`, `/user` (also mounted at `/` like GitHub does)
 - GraphQL: `POST /graphql` with `{query, variables}`
 - MCP: `POST /mcp` JSON-RPC 2.0 — `initialize`, `tools/list`, `tools/call`
